@@ -110,7 +110,7 @@ Node.js – for the reliable backend framework. 🖥
 
 Contact Us 📞
 OfflinePay Team
-📧 Email: support@offlinepay.com
-🌐 Website: offlinepay.com
+📧 Email: prasunadash2005@gmail.com
+🌐 Website: [offlinepay.com](https://off-pay.netlify.app/)
 📍 Location: Odisha,Bhubaneswer
 
