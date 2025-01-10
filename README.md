@@ -6,7 +6,7 @@ Join us in creating a seamless future where technology empowers financial inclus
 
 ## 🏢 **About Us**
 
-**OfflinePay** is a forward-thinking startup focused on providing innovative payment solutions. Our goal is to enable offline payments with security, ease, and reliability. As an emerging player in the financial tech industry, we're transforming how people conduct transactions in regions with limited connectivity.
+**OfflinePay** is a forward-thinking , focused on providing innovative payment solutions. Our goal is to enable offline payments with security, ease, and reliability. As an emerging player in the financial tech industry, we're transforming how people conduct transactions in regions with limited connectivity.
 
 Our platform enables users to:
 
