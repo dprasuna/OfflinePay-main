@@ -10,25 +10,34 @@ const HomeOffline = () => {
   }, []);
 
   const getUser = async () => {
-    const user = localStorage.getItem("userId");
-    if (!user) {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token"); // Fetch token from local storage
+
+    if (!userId || !token) {
       window.location.href = "/login";
+      return;
     }
-    const res = await axios.get(
-      "https://vihaan007-xxnf.onrender.com/users/getUser",
-      {
+
+    try {
+      const res = await axios.get("http://localhost:8000/users/getUser", {
         headers: {
-          Authorization: `${localStorage.getItem("userId")}`,
+          Authorization: `Bearer ${token}`, // Use Bearer token
         },
+      });
+
+      console.log(res.data.user);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      if (error.response && error.response.status === 401) {
+        window.location.href = "/login"; // Redirect if unauthorized
       }
-    );
-    console.log(res.data.user);
+    }
   };
 
   return (
     <>
       <Navbar />
-      <DemoCarousel />
+      {/* <DemoCarousel /> */}
       <HeroOffline />
     </>
   );

@@ -1,9 +1,6 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar/Navbar";
 import axios from "axios";
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
 
 export default function CheckBalanceOffline() {
   const [balance, setBalance] = useState(null);
@@ -12,39 +9,46 @@ export default function CheckBalanceOffline() {
   const [showPinModal, setShowPinModal] = useState(true);
   const [senderId, setSenderId] = useState("");
 
-  const getUser = async () => {
-    try {
-      const res = await axios.get(
-        "https://vihaan007-xxnf.onrender.com/users/getUser",
-        {
-          headers: {
-            Authorization: `${localStorage.getItem("userId")}`,
-          },
-        }
-      );
-      // setSenderId(res.data.user._id);
-      setLocalPin(res.data.user.pin);
+  useEffect(() => {
+    getUser();
+  }, []);
 
+  const getUser = async () => {
+    const token = localStorage.getItem("token"); // Retrieve token
+    if (!token) {
+      window.location.href = "/login"; // Redirect if token is missing
+      return;
+    }
+
+    try {
+      const res = await axios.get("http://localhost:8000/users/getUser", {
+        headers: {
+          Authorization: `Bearer ${token}`, // Use Bearer Token
+        },
+      });
+
+      setSenderId(res.data.user._id);
+      setLocalPin(res.data.user.pin);
     } catch (error) {
       console.error("Error fetching user data:", error);
+      if (error.response && error.response.status === 401) {
+        window.location.href = "/login"; // Redirect if unauthorized
+      }
     }
   };
 
   const data = {
     pin: pin,
-    senderId: (localStorage.getItem("userId")),
+    senderId: senderId,
     option: "2",
   };
-  console.log(data);
-  const encrypt = btoa(JSON.stringify(data));
 
-  const handlePinSubmit = async () => {
+  const encrypt = btoa(JSON.stringify(data)); // Encrypt data
+
+  const handlePinSubmit = () => {
     const smsLink = `sms:+919350728474?body=${encrypt}%0A`;
     window.open(smsLink);
   };
-  useEffect(() => {
-    getUser();
-  }, []);
 
   return (
     <>
@@ -62,22 +66,29 @@ export default function CheckBalanceOffline() {
         {/* Pin Modal */}
         {showPinModal && (
           <div className="absolute inset-0 flex justify-center items-center bg-gray-800 bg-opacity-50">
-            <div className="modal-content bg-white p-4 rounded-md">
-              <label htmlFor="pin">Enter PIN:</label>
+            <div className="modal-content  bg-gray-300 p-4 rounded-md">
+              <label htmlFor="pin" className="font-bold block mb-2 text-black">
+                Enter PIN:
+              </label>
               <input
                 type="password"
                 id="pin"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                className="block w-full border border-black rounded-md mt-2"
+                 className="block w-full border border-black rounded-md px-3 py-2 mb-4 text-black bg-gray-300" 
+                placeholder="Enter 4 digit PIN"
               />
 
-              <div className="flex flex-col">
+              <div className="flex justify-center">
                 <button
                   onClick={handlePinSubmit}
-                  className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-md"
+                  className="relative p-1 rounded-lg bg-gradient-to-r from-green-400 via-teal-500 to-blue-500 animate-gradient-border hover:scale-105 transition-transform"
                 >
-                  Submit
+                  <div className="flex flex-col items-center justify-center bg-white dark:bg-gray-800 rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-lg">
+                    <span className="text-green-800 dark:text-green-200 text-sm">
+                      Submit
+                    </span>
+                  </div>
                 </button>
               </div>
             </div>

@@ -6,7 +6,7 @@ import { Carousel } from 'react-responsive-carousel';
 const DemoCarousel = () => {
 
     return (
-        <Carousel className='mt-[50px]' width={"110%"}  swipeable={true}  showArrows={false} showStatus={false} showIndicators={false} showThumbs={false}>
+        <Carousel className='mt-[50px]' width={"100%"}  swipeable={true}  showArrows={false} showStatus={false} showIndicators={false} showThumbs={false}>
             <div>
                 <img src={Carousel3} alt="Slide 3" />
             </div>
