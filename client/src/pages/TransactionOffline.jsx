@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const TransactionOffline = () => {
@@ -11,28 +10,31 @@ const TransactionOffline = () => {
 
   const getUser = async () => {
     try {
-      const res = await axios.get(
-        "https://vihaan007-xxnf.onrender.com/users/getUser",
-        {
-          headers: {
-            Authorization: `${localStorage.getItem("userId")}`,
-          },
-        }
-      );
-      // setSenderId(res.data.user._id);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found. Redirecting to login page...");
+        return;
+      }
+
+      const res = await axios.get("http://localhost:8000/users/getUser", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSenderId(res.data.user._id);
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
   };
 
   const data = {
-    senderId: (localStorage.getItem("userId")),
+    senderId: senderId || localStorage.getItem("userId"), // Ensure senderId is correctly set
     option: "3",
   };
   const encrypt = btoa(JSON.stringify(data));
 
-  const handleSubmit = async () => {
-
+  const handleSubmit = () => {
     const smsLink = `sms:+919350728474?body=${encrypt}%0A`;
     window.open(smsLink);
   };

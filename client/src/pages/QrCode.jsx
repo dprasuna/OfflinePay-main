@@ -4,29 +4,27 @@ import Navbar from "../components/Navbar/Navbar";
 import axios from "axios";
 
 const QrCode = () => {
-  // const [data, setData] = useState({});
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // State to track loading
 
   useEffect(() => {
     getUser();
-    // setData(localStorage.getItem("user"));
   }, []);
-// console.log(data)
+
   const getUser = async () => {
     try {
-      const res = await axios.get(
-        "https://vihaan007-xxnf.onrender.com/users/getUser",
-        {
-          headers: {
-            Authorization: `${localStorage.getItem("userId")}`,
-          },
-        }
-      );
-      // setData(res.data.user);
-      setLoading(false); // Set loading to false when data is fetched
+      const token = localStorage.getItem("token"); // Ensure token is retrieved
+      const res = await axios.get("http://localhost:8000/users/getUser", {
+        headers: {
+          Authorization: `Bearer ${token}`, // Proper token format
+        },
+      });
+
+      setUser(res.data.user); // Set user details
+      setLoading(false);
     } catch (error) {
       console.error("Error occurred while fetching user data:", error);
-      setLoading(false); // Set loading to false even if error occurs
+      setLoading(false);
     }
   };
 
@@ -38,13 +36,13 @@ const QrCode = () => {
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-900"></div>
         </div>
       ) : (
-        <div className="flex flex-col gap-10 items-center justify-center ">
+        <div className="flex flex-col gap-10 items-center justify-center">
           <QRCode
-            value={JSON.stringify({ upiId: localStorage.getItem("user"), receiverId: localStorage.getItem("userId") })}
+            value={JSON.stringify({ upiId: user?.upiId, receiverId: user?._id })}
             style={{ width: "200px", height: "200px", marginTop: "100px" }}
           />
-          <span className="border border-black p-3 rounded-md bg-white">
-            {localStorage.getItem("user")}
+          <span className="border border-black dark:border-white p-3 rounded-md bg-white dark:bg-gray-800 text-black dark:text-white">
+            {user?.upiId}
           </span>
         </div>
       )}

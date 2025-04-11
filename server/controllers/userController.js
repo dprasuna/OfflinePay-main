@@ -1,18 +1,18 @@
-const User = require("../models/userModel.js");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const { enc } = require("crypto-js");
-const accountSid = "AC87a4dee030cf415e33ea9698c520bd21";
-const authToken = "05748765895ffb447c395fc0cd13401a";
-const client = require("twilio")(accountSid, authToken);
-
+const User = require("../models/UserModel.js");
 require("dotenv").config();
 
-const myPhoneNumber = "+916370796484";
+const jwt = require("jsonwebtoken");
+require("crypto");
+require("crypto-js");
 
 const generateToken = (user) => {
+  if (!process.env.SECRET_KEY) {
+    throw new Error("SECRET_KEY is not defined in the .env file");
+  }
+
   const payload = { id: user._id };
-  const expiresInDuration = "1d";
+  const expiresInDuration = "30d";
+
   return jwt.sign(payload, process.env.SECRET_KEY, {
     expiresIn: expiresInDuration,
   });
@@ -21,14 +21,21 @@ const generateToken = (user) => {
 const loginUser = async (req, res) => {
   const { userName, password } = req.body;
   const user = await User.findOne({ userName });
+
   if (user && (await user.matchPassword(password))) {
     const token = generateToken(user);
+
+    // Logging token and user ID to the console
+    console.log("Generated Token:", token);
+    console.log("User ID:", user._id);
+
     res.cookie("token", token);
     res.json({
       token,
       user,
     });
   } else {
+    console.log("Invalid login attempt for user:", userName);
     res.status(401).json("Invalid Email or Password");
   }
 };
@@ -62,140 +69,26 @@ const registerUser = async (req, res) => {
 };
 
 const getUser = async (req, res) => {
-  const userId = req.headers.authorization;
-  if (userId) {
-    const user = await User.findOne({ _id: userId });
-    if (user) {
-      return res.status(200).send({ user });
-    }
-  } else {
-    return res.status(401).send({ error: "User Not Found...!" });
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res
+      .status(401)
+      .send({ error: "No token provided or invalid format" });
   }
-};
 
-const sendMoney = async (req, res) => {
-  const { amount, receiverUpi, senderId, pin } = req.body;
-  const sender = await User.findOne({ _id: senderId });
-  const receiver = await User.findOne({ upiId: receiverUpi });
-  const senderUpi = sender.upiId;
-  if (sender.amount > amount && sender.pin == pin) {
-    sender.amount = sender.amount - amount;
-    receiver.amount = parseInt(receiver.amount) + parseInt(amount);
-    const referenceNumber = Math.floor(Math.random() * 1000000000);
-    sender.transactions.push({
-      type: "Debit",
-      referenceNumber,
-      amount,
-      upiId: receiverUpi,
-      date: new Date().toLocaleString(),
-    });
-    receiver.transactions.push({
-      type: "Credit",
-      referenceNumber,
-      amount,
-      upiId: senderUpi,
-      date: new Date().toLocaleString(),
-    });
-    await sender.save();
-    await receiver.save();
-    client.messages.create({
-      body: `Amount of Rs.${amount} was sent successfully.`,
-      from: "+13344714125",
-      to: myPhoneNumber,
-    });
-    res.status(200).json({ message: "Amount Sent Successfully" });
-  } else {
-    client.messages.create({
-      body: "Transaction Failed due to Insufficient Balance or Wrong Pin",
-      from: "+13344714125",
-      to: myPhoneNumber,
-    });
-    res.status(400).json({ message: "Insufficient Balance or Wrong Pin" });
-  }
-};
+  const token = authHeader.split(" ")[1]; // Extract token
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY); // Verify token
+    const user = await User.findById(decoded.id); // Fetch user from DB
 
-const sendMoneyOffline = async (req, res) => {
-  const encodedData = req.body.message;
-  const decodedData = Buffer.from(encodedData, "base64").toString("utf8");
-  const data = JSON.parse(decodedData);
-  const choice = data.option;
-
-  if (choice == "1") {
-    const { pin, amount, receiverId, senderId } = data;
-    const sender = await User.findOne({ _id: senderId });
-    const receiver = await User.findOne({ upiId: receiverId });
-    const senderUpi = sender.upiId;
-    var options = { timeZone: "Asia/Kolkata", timeZoneName: "short" };
-    const date = new Date().toLocaleString("en-IN", options);
-    if (sender.amount > amount && sender.pin == pin) {
-      sender.amount -= amount;
-      receiver.amount += amount;
-      const referenceNumber = Math.floor(Math.random() * 1000000000);
-      sender.transactions.push({
-        type: "Debit",
-        referenceNumber,
-        amount,
-        upiId: receiverId,
-        date,
-      });
-      receiver.transactions.push({
-        type: "Credit",
-        referenceNumber,
-        amount,
-        upiId: senderUpi,
-        date,
-      });
-      await sender.save();
-      await receiver.save();
-      client.messages.create({
-        body: `Rs.${amount} sent to ${receiverId} successfully.`,
-        from: "+13344714125",
-        to: myPhoneNumber,
-      });
-      res.status(200).json({ message: "Amount Sent Successfully" });
-    } else {
-      client.messages.create({
-        body: "Transaction Failed due to Insufficient Balance or Wrong Pin",
-        from: "+13344714125",
-        to: myPhoneNumber,
-      });
-      res.status(400).json({ message: "Insufficient Balance or Wrong Pin" });
+    if (!user) {
+      return res.status(404).send({ error: "User Not Found...!" });
     }
-  } else if (choice == "2") {
-    const { pin, senderId } = data;
-    const sender = await User.findOne({ _id: senderId });
-    if (sender.pin == pin) {
-      client.messages.create({
-        body: `Your current balance is Rs.${sender.amount}`,
-        from: "+13344714125",
-        to: myPhoneNumber,
-      });
-      res.status(200).json({ balance: sender.amount });
-    } else {
-      client.messages.create({
-        body: "Unable to check balance due to Wrong Pin",
-        from: "+13344714125",
-        to: myPhoneNumber,
-      });
-      res.status(400).json({ message: "Wrong Pin" });
-    }
-  } else if (choice == "3") {
-    const { senderId } = data;
-    const sender = await User.findOne({ _id: senderId });
-    const last5Transactions = sender.transactions.slice(-5);
-    client.messages.create({
-      body: `Last 5 Transactions: ${JSON.stringify(last5Transactions)}`,
-      from: "+13344714125",
-      to: myPhoneNumber,
-    });
-    res.status(200).json({ last5Transactions });
-  } else {
-    client.messages.create({
-      body: "Invalid Option",
-      from: "+13344714125",
-      to: myPhoneNumber,
-    });
-    res.status(400).json({ message: "Invalid Option" });
+
+    res.status(200).send({ user });
+  } catch (error) {
+    res.status(401).send({ error: "Invalid Token" });
   }
 };
 
@@ -203,7 +96,5 @@ module.exports = {
   loginUser,
   registerUser,
   getUser,
-  sendMoney,
-  sendMoneyOffline,
+  generateToken,
 };
-//banda
